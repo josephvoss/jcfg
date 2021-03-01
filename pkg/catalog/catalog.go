@@ -31,6 +31,72 @@ type Graph struct {
 	ResourceMap map[string]*api.Resource
 }
 
+// Check state of parents. Returns true to apply resource, false to cancel
+func checkParent(
+	ctx context.Context, g *Graph, r api.Resource, p string, afterOk bool,
+	afterFail bool, log *logrus.Logger, errChan chan error,
+) bool {
+	key := r.GetName()
+	log.Debugf("Checking if parent %s was applied before applying %s\n", p, key)
+	// Fetch parent
+	pr, err := g.FetchResource(p, log)
+	if err != nil {
+		err = r.Fail(log, errors.Errorf(
+			"Unable to fetch parent resource %s to check state: %v", r, err,
+		))
+		if err != nil {
+			errChan <- err
+		}
+		return false
+	}
+	// Enter inf loop, exit when either completed, failed, or cancelled
+afterParentChecks:
+	for {
+		select {
+		case <-ctx.Done():
+			err = r.Fail(log, errors.Errorf(
+				"Cancelling %s due to context cancellation", key,
+			))
+			if err != nil {
+				errChan <- err
+			}
+			return false
+		default:
+			ps := (*pr).GetMetadata().State
+			// If waiting for parent to be ok - failed == fail, completed == start
+			if afterOk {
+				if ps.Failed == true {
+					err = r.Fail(log, errors.Errorf(
+						"Cancelling %s due to failure of %s", key, p,
+					))
+					if err != nil {
+						errChan <- err
+					}
+					return false
+				}
+				if ps.Completed == true {
+					log.Debugf("%s: Parent %s completed w/ success\n", key, p)
+					break afterParentChecks
+				}
+			}
+			// If waiting for parent to fail - failed == start, completed == cancel
+			if afterFail {
+				if ps.Failed == true {
+					log.Debugf("%s: Parent %s completed w/ failure\n", key, p)
+					break afterParentChecks
+				}
+			}
+			if ps.Completed == true {
+				log.Debugf("%s: Parent %s completed w/ success, cancelling\n", key, p)
+				return false
+			}
+		}
+	}
+	time.Sleep(time.Millisecond * 100)
+	return true
+	//log.Debugf("%s: sleeping till %s\n", key, p)
+}
+
 func applyResource(
 	ctx context.Context,
 	g *Graph, r api.Resource,
@@ -45,51 +111,23 @@ func applyResource(
 	// Helper vars
 	key := strings.Title(r.GetKind()) + "::" + r.GetMetadata().Name
 
-	// Check if parents applied and done
-	parents := r.GetMetadata().Ordering.After
+	// Check if parents applied and done. Returns whether to skip resource or not
+	parents := r.GetMetadata().Ordering.AfterOk
+	afterOk := true
+	afterFail := false
 	for _, p := range parents {
-		log.Debugf("Checking if parent %s was applied before applying %s\n", p, key)
-		// Fetch parent
-		pr, err := g.FetchResource(p, log)
-		if err != nil {
-			err = r.Fail(log, errors.Errorf(
-				"Unable to fetch parent resource %s to check state: %v", r, err,
-			))
-			if err != nil {
-				errChan <- err
-			}
+		cont := checkParent(ctx, g, r, p, afterOk, afterFail, log, errChan)
+		if !cont {
 			return
 		}
-		// Enter inf loop, exit when either completed, failed, or cancelled
-	afterParentChecks:
-		for {
-			select {
-			case <-ctx.Done():
-				err = r.Fail(log, errors.Errorf(
-					"Cancelling %s due to context cancellation", key,
-				))
-				if err != nil {
-					errChan <- err
-				}
-				return
-			default:
-				ps := (*pr).GetMetadata().State
-				if ps.Failed == true {
-					err = r.Fail(log, errors.Errorf(
-						"Cancelling %s due to failure of %s", key, p,
-					))
-					if err != nil {
-						errChan <- err
-					}
-					return
-				}
-				if ps.Completed == true {
-					log.Debugf("%s: Parent %s completed\n", key, p)
-					break afterParentChecks
-				}
-			}
-			time.Sleep(time.Millisecond * 100)
-			//log.Debugf("%s: sleeping till %s\n", key, p)
+	}
+	parents = r.GetMetadata().Ordering.AfterFail
+	afterOk = false
+	afterFail = true
+	for _, p := range parents {
+		cont := checkParent(ctx, g, r, p, afterOk, afterFail, log, errChan)
+		if !cont {
+			return
 		}
 	}
 

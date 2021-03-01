@@ -21,7 +21,7 @@
     },
     local do_install = {
       name: 'Install package %s' % name,
-      ordering: { after: ['Exec::Check package %s installed' % name] },
+      ordering: { afterFail: ['Exec::Check package %s installed' % name] },
       path: '/usr/bin/yum',
       args: ['install'] + yum_args + [name],
       exitcode: 0,

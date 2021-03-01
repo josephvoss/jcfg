@@ -31,7 +31,8 @@ type MetadataDef struct {
 
 type OrderingDef struct {
 	//	Before []string // should be pointer to resource. How? <resource>::<name>
-	After []string // should be pointer to resource. How?
+	AfterOk   []string // should be pointer to resource. How?
+	AfterFail []string // should be pointer to resource. How?
 }
 
 type StateDef struct {
