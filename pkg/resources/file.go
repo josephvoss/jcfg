@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"example.com/jcfg/pkg/api"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -42,51 +41,10 @@ func (f *File) Done() {
 	f.Metadata.State.Completed = true
 }
 
-func mapStructLoadIn(
-	input interface{}, output interface{}, reason string,
-) error {
-	if err := mapstructure.Decode(input, output); err != nil {
-		return errors.Errorf("Unable to load %v into %s: %v", reason, err)
-	}
-	return nil
-}
-
 func (f *File) Init() {
 	f.Metadata.State.Completed = false
 	f.Metadata.State.Failed = false
 }
-
-// File resource constructor
-// func NewFile(in map[string]interface{}) (*File, error) {
-// 	output := &File{}
-// 	// Load in nested structs (ordering, metadata, spec)
-// 	ordering, ok := in["ordering"]
-// 	if ok {
-// 		outOrd := &output.GetMetadata().Ordering
-// 		if err := mapStructLoadIn(ordering, outOrd, "Ordering"); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	metadata, ok := in["metadata"]
-// 	if ok {
-// 		outMeta := &output.Metadata
-// 		if err := mapStructLoadIn(metadata, outMeta, "Metadata"); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	spec, ok := in["spec"]
-// 	if ok {
-// 		outSpec := &output.Spec
-// 		if err := mapStructLoadIn(spec, outSpec, "FileSpec"); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	// Finally, load in all top level vars (api, kind, etc)
-// 	if err := mapStructLoadIn(spec, output, "File"); err != nil {
-// 		return nil, err
-// 	}
-// 	return output, nil
-// }
 
 // Get current permissions of file. Pass in filepath via string, outputs unix
 // perm string, error
@@ -253,7 +211,7 @@ func ensureOwners(f *api.FileSpec, log *logrus.Logger) error {
 
 	// Change uid and gid
 	log.Debugf(
-		"Setting uid from %s to %s and gid from %s to %s", uid, expectedUid, gid,
+		"Setting uid from %d to %d and gid from %d to %d", uid, expectedUid, gid,
 		expectedGid,
 	)
 	if err = os.Chown(f.Path, int(expectedUid), int(expectedGid)); err != nil {
@@ -273,10 +231,9 @@ func ensureOwners(f *api.FileSpec, log *logrus.Logger) error {
 	}
 	if expectedUid != uid || expectedGid != gid {
 		return errors.Errorf(
-			"Unable to persistently set ownership of %s to uid %s and gid %s",
+			"Unable to persistently set ownership of %s to uid %d and gid %d",
 			f.Path, expectedUid, expectedGid,
 		)
-		return nil
 	}
 	return nil
 }

@@ -33,7 +33,6 @@ func getContent(con *api.ContentSpec, log *logrus.Logger) (
 	default:
 		return nil, errors.Errorf("Unknown content type %s\n", con.Type)
 	}
-	return nil, nil
 }
 
 // Return UID and GID from UserIdentifierSpec. Just drops int values if set,

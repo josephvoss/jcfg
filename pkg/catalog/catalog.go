@@ -23,13 +23,12 @@ import (
 )
 
 type Catalog struct {
-	ResourceList []api.Resource `json:resourceList"`
+	ResourceList []api.Resource
 }
 
 type Graph struct {
 	Catalog
 	ResourceMap map[string]*api.Resource
-	Root        string
 }
 
 func applyResource(
@@ -45,15 +44,6 @@ func applyResource(
 
 	// Helper vars
 	key := strings.Title(r.GetKind()) + "::" + r.GetMetadata().Name
-
-	//	// Fetch our resource pointer
-	//	r, err := g.FetchResource(rName, log)
-	//	if err != nil {
-	//		errChan <- errors.Errorf(
-	//			"Unable to fetch resource %s to apply: %s", r, err,
-	//		)
-	//		return
-	//	}
 
 	// Check if parents applied and done
 	parents := r.GetMetadata().Ordering.After
@@ -202,7 +192,6 @@ func NewCatalog(fp string, log *logrus.Logger) (*Catalog, error) {
 		}
 		switch strings.ToLower(resKindStr) {
 		case "file":
-			//f, err := resources.NewFile(elem)
 			f := &resources.File{}
 			// Re-marshal elem into json binary
 			b, err := json.Marshal(elem)
@@ -222,12 +211,6 @@ func NewCatalog(fp string, log *logrus.Logger) (*Catalog, error) {
 			}
 			// init the state struct
 			f.Init()
-			// 			if err := mapstructure.Decode(elem, &fileRes); err != nil {
-			// 				return nil, errors.Errorf(
-			// 					"Unable to load resource %s of kind File into Resources.File: %v",
-			// 					resKindStr, err,
-			// 				)
-			// 			}
 			log.Debugf("Loaded resource %+v\n", *f)
 			res = f
 		case "exec":
@@ -282,8 +265,6 @@ func (g *Graph) LoadCatalog(c *Catalog, log *logrus.Logger) error {
 		g.ResourceMap[key] = &c.ResourceList[index]
 		log.Debugf("Added resource %s to resourceMap\n", key)
 	}
-	// TODO::FIXME - set root input
-	g.Root = "File::hello-world-file"
 	return nil
 }
 
