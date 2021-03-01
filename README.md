@@ -2,9 +2,10 @@
 
 Enforcing system configuration via json (and ideally scripted w/ jsonnet).
 
-Currently, this will just be concerned w/ *applying* a generated catalog. The
-*generation* of the catalog will be handled later, either through creating a
-server-side/compiler binary, or just saying "use jsonnet".
+Currently, the golang binary will just be concerned w/ applying a generated
+catalog. The generation of the catalog is planned to be handled through jsonnet
+scripting (depending how feasible that is), where collections of resources are
+defined as functions to be included.
 
 Compiler - whatever it is - should build a catalog by combining a node's facts
 with library code. This library code includes module/class/role definitions for
@@ -22,11 +23,25 @@ execs) (right? Or do we want plugins with the apply binary?).
   Easier to just say "compiler", but if jsonnet is compiler we're hosed
   * Apply binary should do it  - ordering defined in catalog, read by apply
     binary
+  * OR - hear me out - let // do the work for us. Spin up every loaded resource
+    at once, lock dependents until parents have completed or failed
 * Generic plugins? Or just apply files and execs?
-  * Files and execs should work
+  * Files and execs *should* work. Will create a few basic modules and see how
+    it actually works
 * What to do when resource fails? Branching execution?
   * Resource should include `depends` attributes, and applying an (or any
     resource) w/ exit code non-zero should mark all deps as skipped.
+  * Or, just have child resources fail when they see a parent has.
+
+## Examples
+
+```
+$ go build ./cmd/jcfg
+$ JSONNET_PATH=./modules jsonnet ./examples/pkg-config-test.jsonnet > ./pkg-config-test.json
+
+# ./jcfg apply --debug --verbose ./pkg-config-test.json
+```
+
 
 ## API
 
