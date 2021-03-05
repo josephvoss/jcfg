@@ -1,5 +1,11 @@
 {
   local core = import 'util/core.jsonnet',
+  // Uses yum to install a package. Creates two resources - checks if package
+  // currently installed w/ RPM, and runs yum install if failed
+  //
+  // Params:
+  //   yum_args  Args to pass to yum during install
+  //   ordering  Schedules initial check resource
   Package(name, params):: {
     // couple of resources here to be chained
     // check if package installed. If err, run follow to install
