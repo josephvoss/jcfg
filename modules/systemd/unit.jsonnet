@@ -45,41 +45,48 @@
   // params:
   //   active
   //   enable
-  //   ordering
+  //   active_ordering
+  //   enable_ordering
   //
   Unit(name, params):: {
-    local set_enable = params.enable,
+    local p = {
+      name: name,
+      enable: true,
+      active: true,
+      enable_ordering: {},
+      active_ordering: {},
+    } + params,
     // Check enabled - fail, set enabled
     local check_enabled = {
-      name: 'Check %s enabled state' % name,
+      name: 'Check %s enabled state' % p.name,
       path: '/bin/systemctl',
-      args: ['is-enabled', name],
-      exitcode: if set_enable == true then 0 else 1,
+      args: ['is-enabled', p.name],
+      exitcode: if p.enable == true then 0 else 1,
       failOk: true,
+      ordering: p.enable_ordering,
     },
     local set_enabled = {
-      name: 'Set %s enabled state' % name,
+      name: 'Set %s enabled state' % p.name,
       path: '/bin/systemctl',
-      args: [if set_enable == true then 'enable' else 'disable', name],
+      args: [if p.enable == true then 'enable' else 'disable', p.name],
       failOk: false,
-      ordering: { afterFail: 'Check %s enabled state' % name },
+      ordering: { afterFail: 'Check %s enabled state' % p.name },
     },
-    local param_active = params.active,
     // Check active - fail, set active
     local check_active = {
-      name: 'Check %s active state' % name,
+      name: 'Check %s active state' % p.name,
       path: '/bin/systemctl',
-      args: ['is-active', name],
-      exitcode: if param_active == true then 0 else 1,
+      args: ['is-active', p.name],
+      exitcode: if p.active == true then 0 else 1,
       failOk: true,
-      ordering: { afterOk: params.ordering },
+      ordering: { afterOk: p.active_ordering },
     },
     local set_active = {
-      name: 'Set %s active state' % name,
+      name: 'Set %s active state' % p.name,
       path: '/bin/systemctl',
-      args: [if param_active == true then 'start' else 'stop', name],
+      args: [if p.active == true then 'start' else 'stop', p.name],
       failOk: false,
-      ordering: { afterFail: 'Check %s active state' % name },
+      ordering: { afterFail: 'Check %s active state' % p.name },
     },
     output: [
       core.Exec('', check_enabled),
