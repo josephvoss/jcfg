@@ -1,5 +1,5 @@
 {
-  local core = import 'util/core.jsonnet',
+  local core = import 'modules/util/core.jsonnet',
   // Build systemd section content.
   // Args:
   //   section  Name of the section to create
@@ -70,7 +70,7 @@
       path: '/bin/systemctl',
       args: [if p.enable == true then 'enable' else 'disable', p.name],
       failOk: false,
-      ordering: { afterFail: 'Check %s enabled state' % p.name },
+      ordering: { afterFail: ['Exec::Check %s enabled state' % p.name] },
     },
     // Check active - fail, set active
     local check_active = {
@@ -79,14 +79,14 @@
       args: ['is-active', p.name],
       exitcode: if p.active == true then 0 else 1,
       failOk: true,
-      ordering: { afterOk: p.active_ordering },
+      ordering: p.active_ordering,
     },
     local set_active = {
       name: 'Set %s active state' % p.name,
       path: '/bin/systemctl',
       args: [if p.active == true then 'start' else 'stop', p.name],
       failOk: false,
-      ordering: { afterFail: 'Check %s active state' % p.name },
+      ordering: { afterFail: ['Exec::Check %s active state' % p.name] },
     },
     output: [
       core.Exec('', check_enabled),

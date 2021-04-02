@@ -1,5 +1,5 @@
 {
-  local core = import 'util/core.jsonnet',
+  local core = import 'modules/util/core.jsonnet',
   // Uses yum to install a package. Creates two resources - checks if package
   // currently installed w/ RPM, and runs yum install if failed
   //

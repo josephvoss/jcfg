@@ -65,3 +65,8 @@ ordering:
   `afterOk` parent failed, we fail (pending `failOk`). What about collecting
 resources? Generally users want an ensure, they shouldn't care if the ensure
 necessitated a state change
+* Ensure present vs absent - newer modules are missing absent cases
+* Checks vs sets. FailOk on check means the set is cancelled? Or at least
+  hangs, bug
+* Control-C to check pending tasks
+* Content type secret

@@ -1,5 +1,5 @@
 {
-  local core = import 'util/core.jsonnet',
+  local core = import 'modules/util/core.jsonnet',
 
   // Create local user
   // params:
@@ -37,33 +37,35 @@
     local check_exists = {
       name: 'Check user %s exists' % p.name,
       path: '/usr/bin/id',
-      args: ['-u ', p.name],
+      args: ['-u', p.name],
       exitcode: 0,
-      failOk: true,
+      failOk: false,
       ordering: p.ordering,
     },
     // Shared args between useradd and usermod
-    local shared_user_args = [
-      if p.password != '' then '--password %s' % p.password,
-      if p.shell != '' then '--shell %s' % p.shell,
-      if p.uid != '' then '--uid %s' % p.uid,
-      if p.gid != '' then '--gid %s' % p.gid else if p.group != '' then '-g %s' % p.group,
-      if p.home != '' then '-d %s' % p.home,
-    ],
-    local useradd_args = shared_user_args + [
+    local shared_user_args = std.prune(std.flattenArrays([
+      if p.password != '' then ['--password', p.password] else [],
+      if p.shell != '' then ['--shell', p.shell] else [],
+      if p.uid != '' then ['--uid', p.uid] else [],
+      if p.gid != '' then ['--gid', p.gid]
+      else if p.group != '' then ['-g', p.group] else [],
+      if p.home != '' then ['-d', p.home] else [],
+    ])),
+    local useradd_args = std.prune(std.flattenArrays([shared_user_args, [
       if p.create_home then '--create-home' else '--no-create-home',
       // TODO: Logic here might be off, not sure of -U vs -g conflicts
       if p.create_group then '--user-group' else '--no-user-group',
       if p.system then '--system',
-    ],
-    local usermod_args = shared_user_args,
+      p.name,
+    ]])),
+    local usermod_args = std.prune(std.flattenArrays([shared_user_args, [p.name]])),
     local create_user = {
       name: 'Create user %s' % p.name,
       path: '/usr/sbin/useradd',
       args: useradd_args,
       exitcode: 0,
       failOk: false,
-      ordering: { afterFail: 'Check user %s exists' % p.name },
+      ordering: { afterFail: ['Exec::Check user %s exists' % p.name] },
     },
     // Check user attributes - fail, mod
     // Well, we can't actually easily check these params...mod every time I guess :/
@@ -73,7 +75,7 @@
       args: usermod_args,
       exitcode: 0,
       failOk: false,
-      ordering: { afterOk: 'Check user %s exists' % p.name },
+      ordering: { afterOk: ['Exec::Check user %s exists' % p.name] },
     },
     output: [
       core.Exec('', check_exists),
