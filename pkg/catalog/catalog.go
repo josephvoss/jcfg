@@ -66,6 +66,8 @@ afterParentChecks:
 			// If waiting for parent to be ok - failed == fail, completed == start
 			if afterOk {
 				if ps.Failed == true {
+					// TODO: Should we fail here? I think we should cancel instead
+					// Well, we can set failOk. Huh
 					err = r.Fail(log, errors.Errorf(
 						"Cancelling %s due to failure of %s", key, p,
 					))

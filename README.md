@@ -58,3 +58,10 @@ ordering:
   before:
   after:
 ```
+
+## Issues
+
+* Ordering/collectors. Currently only have `afterOk` and `afterFail`. If
+  `afterOk` parent failed, we fail (pending `failOk`). What about collecting
+resources? Generally users want an ensure, they shouldn't care if the ensure
+necessitated a state change
